@@ -13,13 +13,13 @@
 #define FALSE 0
 #define TRUE 1
 
-typedef void(*ReadHandler)(const char const*, const int);
+typedef void(*ReadHandler)(const unsigned char const*, const int);
 //typedef void(*ReadHandler)();
 static int fd = FD_UNDEFINED;
-static int wlen;
 static int READ_LOOP_QUIT = FALSE;
 static pthread_t read_thread;
 static pthread_mutex_t rw_lock;
+
 
 static int set_interface_attribs(int fd, int speed)
 {
@@ -56,21 +56,21 @@ static int set_interface_attribs(int fd, int speed)
   return 0;
 }
 
-static void set_mincount(int fd, int mcount)
-{
-  struct termios tty;
+/* static void set_mincount(int fd, int mcount) */
+/* { */
+/*   struct termios tty; */
 
-  if (tcgetattr(fd, &tty) < 0) {
-    printf("Error tcgetattr: %s\n", strerror(errno));
-    return;
-  }
+/*   if (tcgetattr(fd, &tty) < 0) { */
+/*     printf("Error tcgetattr: %s\n", strerror(errno)); */
+/*     return; */
+/*   } */
 
-  tty.c_cc[VMIN] = mcount ? 1 : 0;
-  tty.c_cc[VTIME] = 5;        /* half second timer */
+/*   tty.c_cc[VMIN] = mcount ? 1 : 0; */
+/*   tty.c_cc[VTIME] = 5;        /\* half second timer *\/ */
 
-  if (tcsetattr(fd, TCSANOW, &tty) < 0)
-    printf("Error tcsetattr: %s\n", strerror(errno));
-}
+/*   if (tcsetattr(fd, TCSANOW, &tty) < 0) */
+/*     printf("Error tcsetattr: %s\n", strerror(errno)); */
+/* } */
 
 static void *pthread_readwriteloop(void *func) {
   /* simple noncanonical input */
@@ -130,6 +130,7 @@ int init(const char portname[], ReadHandler func)
     fprintf(stderr, "PThread create didn't work\n");
     return -1;
   }
+  return 0;
 }
 
 int close_mcb() {
@@ -160,33 +161,5 @@ int writeToSerial(const char * const toWrite) {
   }
   tcdrain(fd);    /* delay for output */
   pthread_mutex_unlock(&rw_lock);
-  return 0;
-}
-
-void printRead(const char const* readString, int rdlen) {
-  //void printRead() {
-#ifdef DISPLAY_STRING
-  printf("Read %d: \"%s\"\n", rdlen, readString);
-#else /* display hex */
-  unsigned char   *p;
-  printf("Read %d:", rdlen);
-  for (p = buf; rdlen-- > 0; p++)
-    printf(" 0x%x", *p);
-  printf("\n");
-#endif
-
-}
-
-int main(char *buff[]) {
-  init("/dev/ttyS4", &printRead);
-  sleep(5);
-  writeToSerial("40\n");
-  sleep(5);
-  writeToSerial("20\n");
-  sleep(5);
-  writeToSerial("0\n");
-  sleep(5);
-  close_mcb();
-  printf("Done closing down\n");
   return 0;
 }
